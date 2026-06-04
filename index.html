@@ -1,61 +1,532 @@
-<!-- ホーム画面 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Basketball Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif; background: #f5f5f5; color: #111; min-height: 100vh; }
+  .screen { display: none; padding: 24px; max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* HOME */
+  .home-header { text-align: center; padding: 48px 0 32px; }
+  .home-header .ball { font-size: 56px; margin-bottom: 12px; }
+  .home-header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; color: #111; }
+  .home-header p { font-size: 13px; color: #888; margin-top: 6px; }
+  .home-buttons { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
+  .btn-primary { background: #f97316; border: none; color: #fff; font-size: 16px; font-weight: 600; padding: 16px; border-radius: 12px; cursor: pointer; transition: opacity .15s; }
+  .btn-primary:hover { opacity: .88; }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-secondary { background: #fff; border: 1px solid #ddd; color: #333; font-size: 15px; font-weight: 500; padding: 14px; border-radius: 12px; cursor: pointer; transition: background .15s; }
+  .btn-secondary:hover { background: #f5f5f5; }
+  .btn-back { background: none; border: none; color: #888; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-bottom: 20px; padding: 0; }
+  .btn-back:hover { color: #333; }
+
+  /* PLAYER INPUT */
+  .player-form { flex: 1; display: flex; flex-direction: column; gap: 16px; padding-top: 8px; }
+  .player-form h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .player-form input { background: #fff; border: 1px solid #ddd; color: #111; font-size: 16px; padding: 14px 16px; border-radius: 10px; width: 100%; outline: none; }
+  .player-form input:focus { border-color: #f97316; }
+  .players-list h3 { font-size: 12px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .player-chip { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
+  .player-chip span { font-size: 14px; color: #333; }
+  .player-chip button { background: none; border: none; color: #bbb; cursor: pointer; font-size: 16px; }
+  .player-chip button:hover { color: #f97316; }
+
+  /* SELECT PLAYER */
+  .player-select-item { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: border-color .15s; }
+  .player-select-item:hover { border-color: #f97316; }
+  .player-select-item .pname { font-size: 15px; font-weight: 500; color: #111; }
+  .player-select-item .pstats { font-size: 12px; color: #aaa; margin-top: 2px; }
+  .player-select-item .arrow { color: #ccc; font-size: 18px; }
+
+  /* CALENDAR */
+  .calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .calendar-header h2 { font-size: 18px; font-weight: 600; }
+  .calendar-header .player-tag { font-size: 12px; color: #f97316; background: rgba(249,115,22,.1); padding: 4px 10px; border-radius: 20px; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .day-label { font-size: 10px; color: #aaa; text-align: center; padding-bottom: 4px; text-transform: uppercase; }
+  .day-cell { aspect-ratio: 1; border-radius: 8px; border: 1px solid #e5e5e5; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; transition: transform .1s; background: #fff; color: #bbb; }
+  .day-cell:hover { transform: scale(1.08); }
+  .day-cell.empty { background: transparent; border-color: transparent; cursor: default; }
+  .day-cell.day-perfect { background: #dcfce7; border-color: #86efac; color: #166534; }
+  .day-cell.day-great   { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }
+  .day-cell.day-good    { background: #ecfccb; border-color: #bef264; color: #3f6212; }
+  .day-cell.day-mid     { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+  .day-cell.day-low     { background: #ffedd5; border-color: #fdba74; color: #9a3412; }
+  .day-cell.day-poor    { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+  .day-cell.day-none    { background: #fef2f2; border-color: #fca5a5; color: #ef4444; }
+  .day-cell.day-future  { background: #fff; border-color: #eee; color: #ddd; cursor: default; }
+  .summary-bar { margin-top: 20px; background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 16px; display: flex; justify-content: space-around; }
+  .summary-stat { text-align: center; }
+  .summary-stat .val { font-size: 22px; font-weight: 700; color: #f97316; }
+  .summary-stat .lbl { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  /* SESSION RESULT */
+  .result-banner { background: #fff; border: 1px solid #eee; border-radius: 14px; padding: 20px; margin-bottom: 16px; text-align: center; }
+  .result-banner .big-pct { font-size: 52px; font-weight: 800; }
+  .result-banner .result-label { font-size: 14px; color: #888; margin-top: 4px; }
+  .result-banner .drill-breakdown { display: flex; justify-content: space-around; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
+  .result-banner .drill-stat .ds-name { font-size: 11px; color: #aaa; }
+  .result-banner .drill-stat .ds-val { font-size: 16px; font-weight: 700; color: #333; margin-top: 2px; }
+
+  /* SESSION */
+  .session-header { margin-bottom: 20px; }
+  .session-header h2 { font-size: 18px; font-weight: 600; color: #111; }
+  .session-header .day-info { font-size: 13px; color: #aaa; margin-top: 2px; }
+  .drill-card { background: #fff; border: 1px solid #eee; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .drill-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .drill-pct { font-size: 13px; font-weight: 700; }
+  .attempts-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .attempt-dot { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #e5e5e5; background: #f9f9f9; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #ccc; transition: all .15s; }
+  .attempt-dot.made   { background: #dcfce7; border-color: #86efac; color: #166534; }
+  .attempt-dot.missed { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+  .drill-buttons { display: flex; gap: 10px; }
+  .btn-make { flex: 1; background: #f0fdf4; border: 1.5px solid #86efac; color: #166534; font-size: 15px; font-weight: 700; padding: 12px; border-radius: 10px; cursor: pointer; transition: background .15s; }
+  .btn-make:hover { background: #dcfce7; }
+  .btn-make:disabled { opacity: .35; cursor: not-allowed; }
+  .btn-fail { flex: 1; background: #fff5f5; border: 1.5px solid #fca5a5; color: #991b1b; font-size: 15px; font-weight: 700; padding: 12px; border-radius: 10px; cursor: pointer; transition: background .15s; }
+  .btn-fail:hover { background: #fee2e2; }
+  .btn-fail:disabled { opacity: .35; cursor: not-allowed; }
+  .progress-bar-outer { height: 4px; background: #f0f0f0; border-radius: 4px; margin-top: 8px; }
+  .progress-bar-inner { height: 4px; border-radius: 4px; background: #f97316; transition: width .3s; }
+
+  /* LEADERBOARD */
+  .lb-item { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color .15s; }
+  .lb-item:hover { border-color: #f97316; }
+  .lb-top { display: flex; align-items: center; gap: 14px; }
+  .lb-rank { font-size: 16px; font-weight: 700; color: #aaa; min-width: 28px; }
+  .lb-rank.gold { color: #f59e0b; }
+  .lb-rank.silver { color: #9ca3af; }
+  .lb-rank.bronze { color: #c2724f; }
+  .lb-info { flex: 1; }
+  .lb-name { font-size: 15px; font-weight: 600; color: #111; }
+  .lb-sub { font-size: 12px; color: #aaa; margin-top: 2px; }
+  .lb-pct { font-size: 18px; font-weight: 700; color: #f97316; }
+  .lb-calendar { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; display: none; }
+  .lb-calendar.open { display: block; }
+  .lb-cal-grid { display: grid; grid-template-columns: repeat(11, 1fr); gap: 3px; }
+  .lb-dot { aspect-ratio: 1; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; }
+  .lb-dot.day-perfect { background: #dcfce7; color: #166534; }
+  .lb-dot.day-great   { background: #d1fae5; color: #065f46; }
+  .lb-dot.day-good    { background: #ecfccb; color: #3f6212; }
+  .lb-dot.day-mid     { background: #fef9c3; color: #854d0e; }
+  .lb-dot.day-low     { background: #ffedd5; color: #9a3412; }
+  .lb-dot.day-poor    { background: #fee2e2; color: #991b1b; }
+  .lb-dot.day-none    { background: #fef2f2; color: #ef4444; }
+  .lb-dot.day-future  { background: #f5f5f5; color: #ddd; }
+  .empty-state { text-align: center; color: #bbb; padding: 48px 0; font-size: 15px; }
+
+  /* LANG BAR */
+  .lang-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #eee; display: flex; justify-content: center; gap: 8px; padding: 10px; z-index: 100; }
+  .lang-btn { background: none; border: 1px solid #ddd; color: #888; font-size: 13px; padding: 6px 16px; border-radius: 20px; cursor: pointer; transition: all .15s; }
+  .lang-btn.active { background: #f97316; border-color: #f97316; color: #fff; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
 <div class="screen active" id="screen-home">
   <div class="home-header">
     <div class="ball">🏀</div>
-    <h1>HOOP TRACKER</h1>
-    <p>31-Day Shooting Program</p>
+    <h1 data-en="HOOP TRACKER" data-ja="フープトラッカー">HOOP TRACKER</h1>
+    <p data-en="31-Day Shooting Program" data-ja="31日間シューティングプログラム">31-Day Shooting Program</p>
   </div>
   <div class="home-buttons">
-    <button class="btn-primary" onclick="goSelectPlayer()">Start Session</button>
-    <button class="btn-secondary" onclick="show('screen-new-player')">+ New Player</button>
-    <button class="btn-secondary" onclick="showLeaderboard()">Leaderboard</button>
+    <button class="btn-primary" onclick="goSelectPlayer()" data-en="Start Session" data-ja="セッション開始">Start Session</button>
+    <button class="btn-secondary" onclick="show('screen-new-player');renderPlayersList()" data-en="+ New Player" data-ja="＋ 新規プレイヤー">+ New Player</button>
+    <button class="btn-secondary" onclick="showLeaderboard()" data-en="Leaderboard" data-ja="ランキング">Leaderboard</button>
   </div>
 </div>
 
-<!-- 新規プレイヤー画面 -->
+<!-- NEW PLAYER -->
 <div class="screen" id="screen-new-player">
-  <input type="text" id="player-input" placeholder="Enter player name..." />
-  <button class="btn-primary" onclick="addPlayer()">Add Player</button>
-  <div id="players-list-inner"></div>
+  <button class="btn-back" onclick="show('screen-home')" data-en="← Back" data-ja="← 戻る">← Back</button>
+  <div class="player-form">
+    <h2 data-en="New Player" data-ja="新規プレイヤー">New Player</h2>
+    <input type="text" id="player-input" data-placeholder-en="Enter player name..." data-placeholder-ja="プレイヤー名を入力..." placeholder="Enter player name..." maxlength="24" />
+    <button class="btn-primary" onclick="addPlayer()" data-en="Add Player" data-ja="追加">Add Player</button>
+    <div class="players-list">
+      <h3 data-en="Players" data-ja="プレイヤー一覧">Players</h3>
+      <div id="players-list-inner"></div>
+      <div id="no-players" style="color:#bbb;font-size:14px" data-en="No players yet." data-ja="まだプレイヤーがいません。">No players yet.</div>
+    </div>
+  </div>
 </div>
 
-<!-- カレンダー画面 -->
+<!-- SELECT PLAYER -->
+<div class="screen" id="screen-select-player">
+  <button class="btn-back" onclick="show('screen-home')" data-en="← Back" data-ja="← 戻る">← Back</button>
+  <h2 style="font-size:18px;font-weight:600;margin-bottom:16px" data-en="Select Player" data-ja="プレイヤーを選択">Select Player</h2>
+  <div id="select-player-list"></div>
+</div>
+
+<!-- CALENDAR -->
 <div class="screen" id="screen-calendar">
+  <button class="btn-back" onclick="show('screen-home')" data-en="← Back" data-ja="← 戻る">← Back</button>
+  <div class="calendar-header">
+    <h2 data-en="31-Day Program" data-ja="31日間プログラム">31-Day Program</h2>
+    <span class="player-tag" id="cal-player-tag"></span>
+  </div>
   <div class="calendar-grid" id="calendar-grid"></div>
   <div class="summary-bar">
-    <div class="summary-stat">
-      <div class="val" id="sum-done">0</div>
-      <div class="lbl">Days Done</div>
-    </div>
-    <div class="summary-stat">
-      <div class="val" id="sum-pct">0%</div>
-      <div class="lbl">Avg Score</div>
-    </div>
-    <div class="summary-stat">
-      <div class="val" id="sum-perfect">0</div>
-      <div class="lbl">Perfect Days</div>
-    </div>
+    <div class="summary-stat"><div class="val" id="sum-done">0</div><div class="lbl" data-en="Days Done" data-ja="完了日数">Days Done</div></div>
+    <div class="summary-stat"><div class="val" id="sum-pct">0%</div><div class="lbl" data-en="Avg Score" data-ja="平均スコア">Avg Score</div></div>
+    <div class="summary-stat"><div class="val" id="sum-perfect">0</div><div class="lbl" data-en="Perfect Days" data-ja="パーフェクト">Perfect Days</div></div>
   </div>
+  <button class="btn-primary" style="margin-top:16px" id="start-day-btn" onclick="startSession()">Start Today</button>
 </div>
 
-<!-- セッション画面 -->
+<!-- SESSION -->
 <div class="screen" id="screen-session">
+  <button class="btn-back" onclick="confirmBack()">← Back</button>
+  <div class="session-header">
+    <h2 id="session-title">Day 1 Session</h2>
+    <div class="day-info" id="session-sub"></div>
+  </div>
   <div id="drills-container"></div>
 </div>
 
-<!-- 結果画面 -->
+<!-- SESSION RESULT -->
 <div class="screen" id="screen-result">
+  <button class="btn-back" onclick="showCalendar()">← Back</button>
   <div id="result-banner-content"></div>
-  <button class="btn-primary" onclick="show('screen-home')">Home</button>
+  <div style="display:flex;gap:10px;margin-top:8px">
+    <button class="btn-secondary" style="flex:1" onclick="showCalendar()" data-en="View Calendar" data-ja="カレンダーを見る">View Calendar</button>
+    <button class="btn-primary" style="flex:1" onclick="show('screen-home')" data-en="Home" data-ja="ホーム">Home</button>
+  </div>
 </div>
 
-<!-- ランキング画面 -->
+<!-- LEADERBOARD -->
 <div class="screen" id="screen-leaderboard">
+  <button class="btn-back" onclick="show('screen-home')" data-en="← Back" data-ja="← 戻る">← Back</button>
+  <h2 style="font-size:18px;font-weight:600;margin-bottom:20px" data-en="Leaderboard" data-ja="ランキング">Leaderboard</h2>
   <div id="lb-list"></div>
 </div>
 
-<!-- 言語切替バー -->
+<!-- LANGUAGE BAR -->
 <div class="lang-bar">
   <button class="lang-btn active" onclick="setLang('en')">EN</button>
   <button class="lang-btn" onclick="setLang('ja')">日本語</button>
 </div>
+
+<script>
+const DRILLS_DEF = [
+  { id: 'mid',   nameEn: 'Mid Range',  nameJa: 'ミドルレンジ', total: 10 },
+  { id: 'ft',    nameEn: 'Free Throw', nameJa: 'フリースロー', total: 10 },
+  { id: 'three', nameEn: '3-Point',    nameJa: '3ポイント',    total: 10 }
+];
+
+let lang = 'en';
+let state = JSON.parse(localStorage.getItem('hooptracker2') || '{}');
+if (!state.players) state.players = [];
+
+let currentPlayer = null;
+let currentDay = null;
+let sessionData = {};
+let sessionComplete = false;
+
+function save() { localStorage.setItem('hooptracker2', JSON.stringify(state)); }
+function t(en, ja) { return lang === 'ja' ? ja : en; }
+
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', (l==='en' && b.textContent==='EN') || (l==='ja' && b.textContent==='日本語'));
+  });
+  applyLang();
+}
+
+function applyLang() {
+  document.querySelectorAll('[data-en]').forEach(el => { el.textContent = lang==='ja' ? el.dataset.ja : el.dataset.en; });
+  document.querySelectorAll('[data-placeholder-en]').forEach(el => { el.placeholder = lang==='ja' ? el.dataset.placeholderJa : el.dataset.placeholderEn; });
+  const active = document.querySelector('.screen.active');
+  if (!active) return;
+  if (active.id === 'screen-calendar') showCalendar();
+  if (active.id === 'screen-leaderboard') showLeaderboard();
+  if (active.id === 'screen-session') renderSession();
+  if (active.id === 'screen-result') showResultScreen();
+  updateStartDayBtn();
+}
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function getPlayer(name) { return state.players.find(p => p.name === name); }
+
+function addPlayer() {
+  const inp = document.getElementById('player-input');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (state.players.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+    alert(t('Player already exists!', 'プレイヤーはすでに存在します！')); return;
+  }
+  state.players.push({ name, data: {} });
+  save(); inp.value = '';
+  renderPlayersList();
+}
+
+function removePlayer(name) {
+  if (!confirm(t(`Remove ${name}?`, `${name}を削除しますか？`))) return;
+  state.players = state.players.filter(p => p.name !== name);
+  save(); renderPlayersList();
+}
+
+function renderPlayersList() {
+  const el = document.getElementById('players-list-inner');
+  const none = document.getElementById('no-players');
+  el.innerHTML = '';
+  none.style.display = state.players.length ? 'none' : 'block';
+  none.textContent = t('No players yet.', 'まだプレイヤーがいません。');
+  state.players.forEach(p => {
+    const d = document.createElement('div');
+    d.className = 'player-chip';
+    d.innerHTML = `<span>${p.name}</span><button onclick="removePlayer('${p.name}')">✕</button>`;
+    el.appendChild(d);
+  });
+}
+
+function goSelectPlayer() {
+  if (!state.players.length) { show('screen-new-player'); renderPlayersList(); return; }
+  const el = document.getElementById('select-player-list');
+  el.innerHTML = '';
+  state.players.forEach(p => {
+    const days = Object.keys(p.data || {});
+    const comp = days.filter(d => dayPct(p,d) >= 0).length;
+    const avg = comp ? Math.round(days.filter(d=>dayPct(p,d)>=0).reduce((s,d)=>s+dayPct(p,d),0)/comp) : 0;
+    const div = document.createElement('div');
+    div.className = 'player-select-item';
+    div.innerHTML = `<div><div class="pname">${p.name}</div><div class="pstats">${comp} ${t('days','日')} · ${avg}%</div></div><span class="arrow">›</span>`;
+    div.onclick = () => { currentPlayer = p.name; showCalendar(); };
+    el.appendChild(div);
+  });
+  show('screen-select-player');
+}
+
+function dayPct(player, key) {
+  const d = player.data[key];
+  if (!d) return -1;
+  const maxTotal = DRILLS_DEF.reduce((s,dr) => s+dr.total, 0);
+  const total = DRILLS_DEF.reduce((s,dr) => s+(d[dr.id]?d[dr.id].length:0), 0);
+  const made  = DRILLS_DEF.reduce((s,dr) => s+(d[dr.id]?d[dr.id].filter(Boolean).length:0), 0);
+  if (total < maxTotal) return -2;
+  return Math.round((made/maxTotal)*100);
+}
+
+function dayClass(pct) {
+  if (pct === 100) return 'day-perfect';
+  if (pct >= 85)  return 'day-great';
+  if (pct >= 70)  return 'day-good';
+  if (pct >= 55)  return 'day-mid';
+  if (pct >= 35)  return 'day-low';
+  if (pct > 0)    return 'day-poor';
+  return 'day-none';
+}
+
+function showCalendar() {
+  const player = getPlayer(currentPlayer);
+  document.getElementById('cal-player-tag').textContent = player.name;
+  const grid = document.getElementById('calendar-grid');
+  grid.innerHTML = '';
+  const labels = lang==='ja' ? ['日','月','火','水','木','金','土'] : ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  labels.forEach(l => { const d=document.createElement('div'); d.className='day-label'; d.textContent=l; grid.appendChild(d); });
+  const startDay = 3;
+  for (let i=0;i<startDay;i++) { const b=document.createElement('div'); b.className='day-cell empty'; grid.appendChild(b); }
+  let done=0, totalPct=0, perfect=0;
+  for (let day=1; day<=31; day++) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    cell.textContent = day;
+    const key = 'day'+day;
+    const pct = dayPct(player, key);
+    if (pct === -2) { cell.classList.add('day-low'); }
+    else if (pct >= 0) { cell.classList.add(dayClass(pct)); done++; totalPct+=pct; if(pct===100) perfect++; }
+    else { cell.classList.add('day-future'); }
+    cell.onclick = () => { currentDay=day; sessionComplete=false; startSession(); };
+    grid.appendChild(cell);
+  }
+  document.getElementById('sum-done').textContent = done;
+  document.getElementById('sum-pct').textContent = done ? Math.round(totalPct/done)+'%' : '0%';
+  document.getElementById('sum-perfect').textContent = perfect;
+  updateStartDayBtn();
+  show('screen-calendar');
+}
+
+function updateStartDayBtn() {
+  const btn = document.getElementById('start-day-btn');
+  if (!btn || !currentPlayer) return;
+  const player = getPlayer(currentPlayer);
+  const nextDay = Object.keys(player.data||{}).length + 1;
+  if (nextDay > 31) { btn.textContent = t('Program Complete! 🎉','プログラム完了！🎉'); btn.disabled=true; }
+  else { btn.textContent = t(`Start Day ${nextDay}`,`Day ${nextDay} を開始`); btn.disabled=false; currentDay=nextDay; }
+}
+
+function startSession() {
+  const player = getPlayer(currentPlayer);
+  const key = 'day'+currentDay;
+  sessionData = {};
+  DRILLS_DEF.forEach(dr => { sessionData[dr.id] = player.data[key] ? [...(player.data[key][dr.id]||[])] : []; });
+  sessionComplete = false;
+  renderSession();
+  show('screen-session');
+}
+
+function renderSession() {
+  document.getElementById('session-title').textContent = t(`Day ${currentDay} Session`,`Day ${currentDay} セッション`);
+  document.getElementById('session-sub').textContent = currentPlayer;
+  const container = document.getElementById('drills-container');
+  container.innerHTML = '';
+  let allDone = true;
+  DRILLS_DEF.forEach(dr => {
+    const shots = sessionData[dr.id];
+    const made = shots.filter(Boolean).length;
+    const attempted = shots.length;
+    const isDone = attempted >= dr.total;
+    if (!isDone) allDone = false;
+    const pct = attempted ? Math.round((made/attempted)*100) : 0;
+    const drName = lang==='ja' ? dr.nameJa : dr.nameEn;
+    const card = document.createElement('div');
+    card.className = 'drill-card';
+    let dots = '';
+    for (let i=0;i<dr.total;i++) {
+      const val=shots[i];
+      dots += `<div class="attempt-dot ${val===true?'made':val===false?'missed':''}">${val===true?'✓':val===false?'✕':(i+1)}</div>`;
+    }
+    const pctColor = pct>=70?'#166534':pct>=50?'#854d0e':'#991b1b';
+    card.innerHTML = `
+      <div class="drill-title">
+        <span>${drName}</span>
+        <span class="drill-pct" style="color:${isDone?pctColor:'#bbb'}">${isDone?pct+'%':attempted+'/'+dr.total}</span>
+      </div>
+      <div class="attempts-row">${dots}</div>
+      <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:${(attempted/dr.total)*100}%"></div></div>
+      <div class="drill-buttons" style="margin-top:12px">
+        <button class="btn-make" onclick="recordShot('${dr.id}',true)" ${isDone?'disabled':''}>✓ ${t('Make','メイク')}</button>
+        <button class="btn-fail" onclick="recordShot('${dr.id}',false)" ${isDone?'disabled':''}>✕ ${t('Fail','ミス')}</button>
+      </div>`;
+    container.appendChild(card);
+  });
+  if (allDone && !sessionComplete) { sessionComplete=true; setTimeout(()=>{ showResultScreen(); show('screen-result'); },300); }
+}
+
+function showResultScreen() {
+  const maxTotal  = DRILLS_DEF.reduce((s,dr)=>s+dr.total,0);
+  const totalMade = DRILLS_DEF.reduce((s,dr)=>s+sessionData[dr.id].filter(Boolean).length,0);
+  const pct = Math.round((totalMade/maxTotal)*100);
+  const labels = [t('Keep grinding!','もっと頑張ろう！'),t('Getting there!','いい感じ！'),t('Solid session!','いいセッション！'),t('Great shooting!','すばらしい！'),t('PERFECT!','パーフェクト！')];
+  const label = pct===100?labels[4]:pct>=80?labels[3]:pct>=60?labels[2]:pct>=40?labels[1]:labels[0];
+  const color = pct===100?'#166534':pct>=70?'#065f46':pct>=50?'#854d0e':'#991b1b';
+  let breakdown = '';
+  DRILLS_DEF.forEach(dr => {
+    const shots=sessionData[dr.id]; const m=shots.filter(Boolean).length;
+    const p=shots.length?Math.round((m/shots.length)*100):0;
+    breakdown+=`<div class="drill-stat"><div class="ds-name">${lang==='ja'?dr.nameJa:dr.nameEn}</div><div class="ds-val">${m}/${dr.total} (${p}%)</div></div>`;
+  });
+  document.getElementById('result-banner-content').innerHTML = `
+    <div class="result-banner">
+      <div style="font-size:13px;color:#aaa;margin-bottom:8px">Day ${currentDay} — ${currentPlayer}</div>
+      <div class="big-pct" style="color:${color}">${pct}%</div>
+      <div class="result-label">${label}</div>
+      <div class="drill-breakdown">${breakdown}</div>
+    </div>
+    <div style="background:#fff;border:1px solid #eee;border-radius:14px;padding:16px;margin-top:12px;">
+      <div style="font-size:12px;color:#aaa;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">${t('My Progress','プログレス')}</div>
+      ${buildMiniCalHTML()}
+    </div>`;
+}
+
+function buildMiniCalHTML() {
+  const player = getPlayer(currentPlayer);
+  let html = '<div class="lb-cal-grid">';
+  for (let day=1;day<=31;day++) {
+    const pct=dayPct(player,'day'+day);
+    const cls=pct===-1?'day-future':pct===-2?'day-low':dayClass(pct);
+    html+=`<div class="lb-dot ${cls}">${day}</div>`;
+  }
+  return html+'</div>';
+}
+
+function recordShot(drillId, made) {
+  const dr = DRILLS_DEF.find(d=>d.id===drillId);
+  if (sessionData[drillId].length >= dr.total) return;
+  sessionData[drillId].push(made);
+  const player = getPlayer(currentPlayer);
+  if (!player.data) player.data={};
+  const key='day'+currentDay;
+  if (!player.data[key]) player.data[key]={};
+  DRILLS_DEF.forEach(d => { player.data[key][d.id]=sessionData[d.id]; });
+  save();
+  renderSession();
+}
+
+function showLeaderboard() {
+  const el = document.getElementById('lb-list');
+  el.innerHTML = '';
+  if (!state.players.length) {
+    el.innerHTML=`<div class="empty-state">${t('No players yet.','まだプレイヤーがいません。')}</div>`;
+    show('screen-leaderboard'); return;
+  }
+  const ranked = state.players.map(p => {
+    const days=Object.keys(p.data||{});
+    const comp=days.filter(d=>dayPct(p,d)>=0);
+    const avg=comp.length?Math.round(comp.reduce((s,d)=>s+dayPct(p,d),0)/comp.length):0;
+    return {player:p,avg,completed:comp.length};
+  }).sort((a,b)=>b.avg-a.avg||b.completed-a.completed);
+
+  ranked.forEach((entry,i) => {
+    const p=entry.player;
+    const div=document.createElement('div');
+    div.className='lb-item';
+    const rankClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+    const calId='lbcal-'+i;
+    div.innerHTML=`
+      <div class="lb-top">
+        <div class="lb-rank ${rankClass}">${medal}</div>
+        <div class="lb-info">
+          <div class="lb-name">${p.name}</div>
+          <div class="lb-sub">${entry.completed} ${t('days','日')} · ${t('avg','平均')} ${entry.avg}%</div>
+        </div>
+        <div class="lb-pct">${entry.avg}%</div>
+      </div>
+      <div class="lb-calendar" id="${calId}"></div>`;
+    div.onclick = () => {
+      const cal=document.getElementById(calId);
+      if (cal.classList.contains('open')) { cal.classList.remove('open'); return; }
+      cal.classList.add('open');
+      if (!cal.dataset.rendered) {
+        cal.dataset.rendered='1';
+        const grid=document.createElement('div'); grid.className='lb-cal-grid';
+        for (let day=1;day<=31;day++) {
+          const pct=dayPct(p,'day'+day);
+          const dot=document.createElement('div');
+          dot.className='lb-dot '+(pct===-1?'day-future':pct===-2?'day-low':dayClass(pct));
+          dot.textContent=day; grid.appendChild(dot);
+        }
+        cal.appendChild(grid);
+        const legend=document.createElement('div');
+        legend.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;';
+        for (let day=1;day<=31;day++) {
+          const pct=dayPct(p,'day'+day);
+          if (pct>=0) { const s=document.createElement('span'); s.style.cssText='font-size:10px;color:#aaa;'; s.textContent=`D${day}:${pct}%`; legend.appendChild(s); }
+        }
+        cal.appendChild(legend);
+      }
+    };
+    el.appendChild(div);
+  });
+  show('screen-leaderboard');
+}
+
+function confirmBack() {
+  if (confirm(t('Go back? Progress is saved.','戻りますか？進捗は保存されています。'))) showCalendar();
+}
+
+renderPlayersList();
+</script>
+</body>
+</html>
