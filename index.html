@@ -1,0 +1,61 @@
+<!-- ホーム画面 -->
+<div class="screen active" id="screen-home">
+  <div class="home-header">
+    <div class="ball">🏀</div>
+    <h1>HOOP TRACKER</h1>
+    <p>31-Day Shooting Program</p>
+  </div>
+  <div class="home-buttons">
+    <button class="btn-primary" onclick="goSelectPlayer()">Start Session</button>
+    <button class="btn-secondary" onclick="show('screen-new-player')">+ New Player</button>
+    <button class="btn-secondary" onclick="showLeaderboard()">Leaderboard</button>
+  </div>
+</div>
+
+<!-- 新規プレイヤー画面 -->
+<div class="screen" id="screen-new-player">
+  <input type="text" id="player-input" placeholder="Enter player name..." />
+  <button class="btn-primary" onclick="addPlayer()">Add Player</button>
+  <div id="players-list-inner"></div>
+</div>
+
+<!-- カレンダー画面 -->
+<div class="screen" id="screen-calendar">
+  <div class="calendar-grid" id="calendar-grid"></div>
+  <div class="summary-bar">
+    <div class="summary-stat">
+      <div class="val" id="sum-done">0</div>
+      <div class="lbl">Days Done</div>
+    </div>
+    <div class="summary-stat">
+      <div class="val" id="sum-pct">0%</div>
+      <div class="lbl">Avg Score</div>
+    </div>
+    <div class="summary-stat">
+      <div class="val" id="sum-perfect">0</div>
+      <div class="lbl">Perfect Days</div>
+    </div>
+  </div>
+</div>
+
+<!-- セッション画面 -->
+<div class="screen" id="screen-session">
+  <div id="drills-container"></div>
+</div>
+
+<!-- 結果画面 -->
+<div class="screen" id="screen-result">
+  <div id="result-banner-content"></div>
+  <button class="btn-primary" onclick="show('screen-home')">Home</button>
+</div>
+
+<!-- ランキング画面 -->
+<div class="screen" id="screen-leaderboard">
+  <div id="lb-list"></div>
+</div>
+
+<!-- 言語切替バー -->
+<div class="lang-bar">
+  <button class="lang-btn active" onclick="setLang('en')">EN</button>
+  <button class="lang-btn" onclick="setLang('ja')">日本語</button>
+</div>
